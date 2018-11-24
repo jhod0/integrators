@@ -1,8 +1,9 @@
+use std::error;
 use super::{Real, IntegrationResult};
 
 pub trait Integrator {
-    type Success;
-    type Failure;
+    type Success: IntegrationResults;
+    type Failure: error::Error;
     fn integrate<A, B, F: FnMut(A) -> B>(&mut self, fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
         where A: IntegrandInput,
               B: IntegrandOutput;
@@ -27,6 +28,7 @@ impl IntegrandOutput for Vec<Real> {
     fn output_size(&self) -> usize {
         self.len()
     }
+
     fn into_args(&self, output: &mut [Real]) {
         if self.len() != output.len() {
             panic!("Integrand returned vector of wrong length: expected {}, got {}",

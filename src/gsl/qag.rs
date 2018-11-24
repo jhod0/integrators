@@ -2,10 +2,10 @@ use std::convert::Into;
 use std::os::raw::c_int;
 
 use ::bindings;
-use ::{Integrator, Real};
+use ::{IntegrationResult, Integrator, Real};
 use ::traits::{IntegrandInput, IntegrandOutput};
 
-use super::{make_gsl_function, GSLIntegrationResult, GSLIntegrationWorkspace};
+use super::{make_gsl_function, GSLIntegrationError, GSLIntegrationWorkspace};
 
 #[derive(Debug, Hash, Copy, Clone, PartialEq, Eq)]
 pub enum QAGRule {
@@ -65,13 +65,13 @@ impl QAG {
 }
 
 impl Integrator for QAG {
-    type Success = GSLIntegrationResult;
-    type Failure = ();
+    type Success = IntegrationResult;
+    type Failure = GSLIntegrationError;
     fn integrate<A, B, F: FnMut(A) -> B>(&mut self, mut fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
         where A: IntegrandInput,
               B: IntegrandOutput
     {
-        let mut gslfn = make_gsl_function(&mut fun);
+        let mut gslfn = make_gsl_function(&mut fun, self.range_low, self.range_high)?;
         let mut value: Real = 0.0;
         let mut error: Real = 0.0;
 
@@ -87,9 +87,9 @@ impl Integrator for QAG {
         };
 
         if retcode != bindings::GSL_SUCCESS {
-            panic!("GSL failed");
+            Err(GSLIntegrationError::GSLError(retcode.into()))
         } else {
-            Ok(GSLIntegrationResult {
+            Ok(IntegrationResult {
                 value, error
             })
         }

@@ -1,4 +1,4 @@
-use std::{slice, vec};
+use std::{error, fmt, slice, vec};
 use std::convert::From;
 use std::os::raw::{c_int, c_longlong, c_void};
 
@@ -49,6 +49,18 @@ pub struct CubaIntegrationResults {
     pub fail: c_int,
     pub results: Vec<CubaIntegrationResult>
 }
+
+
+#[derive(Copy, Clone, Debug)]
+pub struct CubaError;
+
+impl fmt::Display for CubaError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "(cuba integration error)")
+    }
+}
+
+impl error::Error for CubaError {}
 
 pub struct CubaResultsIter {
     iter: vec::IntoIter<CubaIntegrationResult>

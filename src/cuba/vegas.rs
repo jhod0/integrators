@@ -75,7 +75,7 @@ impl Vegas {
 
 impl Integrator for Vegas {
     type Success = CubaIntegrationResults;
-    type Failure = ();
+    type Failure = super::CubaError;
     fn integrate<A, B, F: FnMut(A) -> B>(&mut self, mut fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
         where A: IntegrandInput,
               B: IntegrandOutput
