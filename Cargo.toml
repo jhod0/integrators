@@ -1,0 +1,13 @@
+[package]
+name = "integrators"
+version = "0.0.1"
+authors = ["Jackson O'Donnell <jacksonhodonnell@gmail.com>"]
+build = "build.rs"
+
+[features]
+default = ["cuba", "gsl"]
+cuba = []
+gsl = []
+
+[build-dependencies]
+bindgen = "0.43.*"
