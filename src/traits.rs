@@ -3,7 +3,7 @@ use super::{Real, IntegrationResult};
 
 pub trait Integrator {
     type Success: IntegrationResults;
-    type Failure: error::Error;
+    type Failure: error::Error + 'static;
     fn integrate<A, B, F: FnMut(A) -> B>(&mut self, fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
         where A: IntegrandInput,
               B: IntegrandOutput;
