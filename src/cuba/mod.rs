@@ -44,19 +44,39 @@ pub struct CubaIntegrationResult {
 
 #[derive(Clone, Debug)]
 pub struct CubaIntegrationResults {
-    pub nregions: c_int,
+    pub nregions: Option<c_int>,
     pub neval: c_longlong,
-    pub fail: c_int,
     pub results: Vec<CubaIntegrationResult>
 }
 
-
-#[derive(Copy, Clone, Debug)]
-pub struct CubaError;
+#[derive(Clone, Debug)]
+pub enum CubaError {
+    /// The integrand input's dimensions are not supported by the given
+    /// algorithm.
+    BadDim(&'static str, usize),
+    /// The integrand output's dimensions are not supported by the given
+    /// algorithm.
+    BadComp(&'static str, usize),
+    /// The integration did not converge. Though the results did not reach
+    /// the desired uncertainty, they still might be useful, and so are
+    /// provided.
+    DidNotConverge(CubaIntegrationResults),
+}
 
 impl fmt::Display for CubaError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "(cuba integration error)")
+        use self::CubaError::*;
+        match &self {
+            &BadDim(name, ndim) => {
+                write!(fmt, "invalid number of dimensions for algorithm {}: {}",
+                       name, ndim)
+            },
+            &BadComp(name, ncomp) => {
+                write!(fmt, "invalid number of outputs for algorithm {}: {}",
+                       name, ncomp)
+            },
+            &DidNotConverge(_) => write!(fmt, "integral did not converge")
+        }
     }
 }
 

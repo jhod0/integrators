@@ -4,7 +4,7 @@ use ::bindings;
 use ::traits::{IntegrandInput, IntegrandOutput};
 use ::{Integrator, Real};
 
-use super::{cuba_integrand, CubaIntegrationResult, CubaIntegrationResults};
+use super::{cuba_integrand, CubaError, CubaIntegrationResult, CubaIntegrationResults};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Vegas {
@@ -116,14 +116,34 @@ impl Integrator for Vegas {
                               prob.as_mut_ptr());
         }
 
-        Ok(CubaIntegrationResults {
-            nregions: -1, neval, fail,
-            results: value.iter().zip(error.iter()).zip(prob.iter())
-                          .map(|((&value, &error), &prob)|
-                                 CubaIntegrationResult {
-                                     value, error, prob
-                                 })
-                          .collect()
-        })
+        if fail == 0 {
+            Ok(CubaIntegrationResults {
+                nregions: None, neval,
+                results: value.iter().zip(error.iter()).zip(prob.iter())
+                              .map(|((&value, &error), &prob)|
+                                     CubaIntegrationResult {
+                                         value, error, prob
+                                     })
+                              .collect()
+            })
+        } else if fail == -1 {
+            // `baddim`
+            Err(CubaError::BadDim("vegas", ndim))
+        } else if fail == -2 {
+            // `badcomp`
+            Err(CubaError::BadComp("vegas", ncomp))
+        } else if fail == 1 {
+            Err(CubaError::DidNotConverge(CubaIntegrationResults {
+                nregions: None, neval,
+                results: value.iter().zip(error.iter()).zip(prob.iter())
+                              .map(|((&value, &error), &prob)|
+                                     CubaIntegrationResult {
+                                         value, error, prob
+                                     })
+                              .collect()
+            }))
+        } else {
+            unreachable!("Vegas returned invalid failure code: {}", fail)
+        }
     }
 }

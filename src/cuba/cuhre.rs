@@ -4,7 +4,7 @@ use ::bindings;
 use ::traits::{IntegrandInput, IntegrandOutput};
 use ::{Integrator, Real};
 
-use super::{cuba_integrand, CubaIntegrationResult, CubaIntegrationResults};
+use super::{cuba_integrand, CubaError, CubaIntegrationResult, CubaIntegrationResults};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Cuhre {
@@ -93,14 +93,34 @@ impl Integrator for Cuhre {
                               prob.as_mut_ptr());
         }
 
-        Ok(CubaIntegrationResults {
-            nregions, neval, fail,
-            results: value.iter().zip(error.iter()).zip(prob.iter())
-                          .map(|((&value, &error), &prob)|
-                                 CubaIntegrationResult {
-                                     value, error, prob
-                                 })
-                          .collect()
-        })
+        if fail == 0 {
+            Ok(CubaIntegrationResults {
+                nregions: Some(nregions), neval,
+                results: value.iter().zip(error.iter()).zip(prob.iter())
+                              .map(|((&value, &error), &prob)|
+                                     CubaIntegrationResult {
+                                         value, error, prob
+                                     })
+                              .collect()
+            })
+        } else if fail == -1 {
+            // `baddim`
+            Err(CubaError::BadDim("cuhre", ndim))
+        } else if fail == -2 {
+            // `badcomp`
+            Err(CubaError::BadComp("cuhre", ncomp))
+        } else if fail == 1 {
+            Err(CubaError::DidNotConverge(CubaIntegrationResults {
+                nregions: Some(nregions), neval,
+                results: value.iter().zip(error.iter()).zip(prob.iter())
+                              .map(|((&value, &error), &prob)|
+                                     CubaIntegrationResult {
+                                         value, error, prob
+                                     })
+                              .collect()
+            }))
+        } else {
+            unreachable!("Cuhre returned invalid failure code: {}", fail)
+        }
     }
 }
