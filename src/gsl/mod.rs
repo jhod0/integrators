@@ -1,5 +1,6 @@
 use std::{error, fmt, marker, mem};
-use std::convert::From;
+use std::convert::{From, Into};
+use std::ffi::CStr;
 use std::os::raw::{c_void, c_int};
 
 use super::bindings;
@@ -9,11 +10,17 @@ use super::Real;
 #[cfg(test)]
 mod test;
 
+mod qng;
+pub use self::qng::QNG;
+
 mod qag;
 pub use self::qag::{QAG, QAGRule};
 
-mod qng;
-pub use self::qng::QNG;
+mod qags;
+pub use self::qags::QAGS;
+
+mod qagp;
+pub use self::qagp::QAGP;
 
 unsafe extern "C"
 fn gsl_integrand_fn<A, B, F>(x: Real, params: *mut c_void) -> Real
@@ -83,6 +90,24 @@ pub enum GSLErrorCode {
     Other(c_int)
 }
 
+impl GSLErrorCode {
+    /// Yields the raw return code.
+    pub fn raw(&self) -> c_int {
+        (*self).into()
+    }
+
+    pub fn gsl_description(&self) -> Option<&'static str> {
+        let descr = unsafe { bindings::gsl_strerror(self.raw()) };
+        if descr.is_null() {
+            None
+        } else {
+            Some(unsafe {
+                CStr::from_ptr::<'static>(descr)
+            }.to_str().expect("gsl_strerror should return valid static string"))
+        }
+    }
+}
+
 impl fmt::Display for GSLErrorCode {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         use self::GSLErrorCode::*;
@@ -92,7 +117,14 @@ impl fmt::Display for GSLErrorCode {
             Sing => write!(fmt, "(GSL) non-integrable singularity detected"),
             Diverge => write!(fmt, "(GSL) divergent integral"),
             Domain => write!(fmt, "(GSL) domain error on input arguments"),
-            Other(n) => write!(fmt, "(GSL) error code {}", n),
+            Other(n) => {
+                let res = write!(fmt, "(GSL) error code {}", n)?;
+                if let Some(desc) = self.gsl_description() {
+                    write!(fmt, ", description: {}", desc)
+                } else {
+                    Ok(res)
+                }
+            },
         }
     }
 }
@@ -109,6 +141,20 @@ impl From<c_int> for GSLErrorCode {
             bindings::GSL_EDIVERGE => Diverge,
             bindings::GSL_EDOM => Domain,
             _ => Other(n)
+        }
+    }
+}
+
+impl Into<c_int> for GSLErrorCode {
+    fn into(self) -> c_int {
+        use self::GSLErrorCode::*;
+        match self {
+            MaxIter => bindings::GSL_EMAXITER,
+            Round => bindings::GSL_EROUND,
+            Sing => bindings::GSL_ESING,
+            Diverge => bindings::GSL_EDIVERGE,
+            Domain => bindings::GSL_EDOM,
+            Other(n) => n,
         }
     }
 }

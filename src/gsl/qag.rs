@@ -31,6 +31,10 @@ impl Into<c_int> for QAGRule {
     }
 }
 
+/// Quadrature Adaptive General integration. Iteratively applies quadrature
+/// rules to sub-regions of a function until it converges to the requested
+/// uncertainty. This method will work reasonably well for most well-behaved
+/// functions.
 pub struct QAG {
     range_low: Real,
     range_high: Real,
@@ -39,6 +43,11 @@ pub struct QAG {
 }
 
 impl QAG {
+    /// Creates a new QAG with enough memory for `nintervals` subintervals.
+    /// This will create a QAG to integrate the range [0, 1], and using the
+    /// 61-point (highest-order) Gauss-Kronrod rule. To change the integration
+    /// bounds, see `with_range`, and to change the quadrature rule, see
+    /// `with_rule`.
     pub fn new(nintervals: usize) -> Self {
         QAG {
             range_low: 0.0,
@@ -48,6 +57,8 @@ impl QAG {
         }
     }
 
+    /// Discards the old workspace and allocates a new one with enough memory
+    /// for `nintervals` subintervals.
     pub fn with_nintervals(self, nintervals: usize) -> Self {
         QAG {
             wkspc: GSLIntegrationWorkspace::new(nintervals),
@@ -58,6 +69,7 @@ impl QAG {
     pub fn with_range(self, range_low: Real, range_high: Real) -> Self {
         QAG { range_low, range_high, ..self }
     }
+
 
     pub fn with_rule(self, rule: QAGRule) -> Self {
         QAG { rule, ..self }

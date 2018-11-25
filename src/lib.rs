@@ -13,7 +13,8 @@ pub use cuba::{Cuhre, Vegas};
 pub mod gsl;
 
 #[cfg(feature = "gsl")]
-pub use gsl::{GSLIntegrationError, GSLResult, QAG, QAGRule, QNG};
+pub use gsl::{GSLIntegrationError, GSLResult,
+              QNG, QAG, QAGRule, QAGS, QAGP};
 
 #[cfg(test)]
 mod test;
