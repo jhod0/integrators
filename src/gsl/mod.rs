@@ -6,6 +6,9 @@ use super::bindings;
 use super::traits::{IntegrandInput, IntegrandOutput};
 use super::Real;
 
+#[cfg(test)]
+mod test;
+
 mod qag;
 pub use self::qag::{QAG, QAGRule};
 
@@ -35,10 +38,34 @@ struct GSLFunction<'a> {
     lifetime: marker::PhantomData<&'a ()>
 }
 
+fn make_gsl_function<'a, A, B, F>(fun: &'a mut F, range_low: Real, range_high: Real)
+        -> GSLResult<GSLFunction<'a>>
+    where A: IntegrandInput,
+          B: IntegrandOutput,
+          F: FnMut(A) -> B
+{
+    if A::input_size() != 1 {
+        Err(GSLIntegrationError::InvalidInputDim(A::input_size()))
+    } else if fun(A::from_args(&[(range_low + range_high) / 2f64]))
+                  .output_size() != 1 {
+        let output_size = fun(A::from_args(&[(range_low + range_high) / 2f64]))
+                              .output_size();
+        Err(GSLIntegrationError::InvalidOutputDim(output_size))
+    } else {
+        Ok(GSLFunction {
+            function: bindings::gsl_function {
+                function: Some(gsl_integrand_fn::<A, B, F>),
+                params: unsafe { mem::transmute(fun) }
+            },
+            lifetime: marker::PhantomData
+        })
+    }
+}
+
 /// Error codes specific to GSL Integration routines. For more information,
 /// read the GSL docs
 /// [here](https://www.gnu.org/software/gsl/doc/html/integration.html#error-codes)
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum GSLErrorCode {
     /// Maximum number of iterations has been reached
     MaxIter,
@@ -86,7 +113,7 @@ impl From<c_int> for GSLErrorCode {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GSLIntegrationError {
     InvalidInputDim(usize),
     InvalidOutputDim(usize),
@@ -104,33 +131,16 @@ impl fmt::Display for GSLIntegrationError {
     }
 }
 
-impl error::Error for GSLIntegrationError {}
-
-pub type GSLResult<T> = Result<T, GSLIntegrationError>;
-
-fn make_gsl_function<'a, A, B, F>(fun: &'a mut F, range_low: Real, range_high: Real)
-        -> GSLResult<GSLFunction<'a>>
-    where A: IntegrandInput,
-          B: IntegrandOutput,
-          F: FnMut(A) -> B
-{
-    if A::input_size() != 1 {
-        Err(GSLIntegrationError::InvalidInputDim(A::input_size()))
-    } else if fun(A::from_args(&[(range_low + range_high) / 2f64]))
-                  .output_size() != 1 {
-        let output_size = fun(A::from_args(&[(range_low + range_high) / 2f64]))
-                              .output_size();
-        Err(GSLIntegrationError::InvalidOutputDim(output_size))
-    } else {
-        Ok(GSLFunction {
-            function: bindings::gsl_function {
-                function: Some(gsl_integrand_fn::<A, B, F>),
-                params: unsafe { mem::transmute(fun) }
-            },
-            lifetime: marker::PhantomData
-        })
+impl error::Error for GSLIntegrationError {
+    fn source(&self) -> Option<&(error::Error + 'static)> {
+        match &self {
+            &GSLIntegrationError::GSLError(ref err) => Some(err),
+            _ => None,
+        }
     }
 }
+
+pub type GSLResult<T> = Result<T, GSLIntegrationError>;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct GSLIntegrationResult {
