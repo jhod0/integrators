@@ -50,6 +50,10 @@ impl Integrator for Cuhre {
         where A: IntegrandInput,
               B: IntegrandOutput
     {
+        // Using cuba's parallelization via fork() would deeply break Rust's
+        // concurrency model and safety guarantees. So, we'll turn it off.
+        unsafe { bindings::cubacores(0, 0) };
+
         let (ndim, ncomp) = {
             let inputs = A::input_size();
             let outputs = fun(A::from_args(&vec![0.5; inputs][..])).output_size();

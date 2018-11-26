@@ -8,6 +8,9 @@ use super::{IntegrationResult, Real};
 mod cuhre;
 pub use self::cuhre::Cuhre;
 
+mod suave;
+pub use self::suave::Suave;
+
 mod vegas;
 pub use self::vegas::Vegas;
 
@@ -35,6 +38,12 @@ fn cuba_integrand<A, B, F>(ndim: *const c_int,
     0
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum RandomNumberSource {
+    Sobol,
+    MersenneTwister,
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct CubaIntegrationResult {
     pub value: Real,
@@ -52,10 +61,12 @@ pub struct CubaIntegrationResults {
 #[derive(Clone, Debug)]
 pub enum CubaError {
     /// The integrand input's dimensions are not supported by the given
-    /// algorithm.
+    /// algorithm. The name of the algorithm and the number of dimensions
+    /// attempted are given.
     BadDim(&'static str, usize),
     /// The integrand output's dimensions are not supported by the given
-    /// algorithm.
+    /// algorithm. The name of the algorithm and the number of dimensions
+    /// attempted are given.
     BadComp(&'static str, usize),
     /// The integration did not converge. Though the results did not reach
     /// the desired uncertainty, they still might be useful, and so are

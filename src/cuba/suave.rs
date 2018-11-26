@@ -7,75 +7,73 @@ use ::{Integrator, Real};
 use super::{cuba_integrand, CubaError, CubaIntegrationResult, CubaIntegrationResults};
 
 #[derive(Copy, Clone, Debug)]
-pub struct Vegas {
+pub struct Suave {
     mineval: usize,
     maxeval: usize,
     seed: usize,
-    nstart: usize,
-    nincrease: usize,
-    nbatch: usize,
-    gridno: u8,
+    nnew: usize,
+    nmin: usize,
+    flatness: Real,
     flags: c_int,
 }
 
-impl Default for Vegas {
+impl Default for Suave {
     fn default() -> Self {
-        Vegas {
+        Suave {
             mineval: 1,
             maxeval: c_longlong::max_value() as usize,
             seed: 0,
-            nstart: 1000,
-            nincrease: 500,
-            nbatch: 1000,
-            gridno: 0,
-            flags: 0
+            nnew: 1000,
+            nmin: 5,
+            flatness: 25 as Real,
+            flags: 0,
         }
     }
 }
 
-impl Vegas {
+impl Suave {
     pub fn new() -> Self {
         Self::default()
     }
 
     pub fn with_mineval(self, maxeval: usize) -> Self {
-        Vegas {
+        Suave {
             maxeval, ..self
         }
     }
 
     pub fn with_maxeval(self, maxeval: usize) -> Self {
-        Vegas {
+        Suave {
             maxeval, ..self
         }
     }
 
     pub fn with_seed(self, seed: usize) -> Self {
-        Vegas {
+        Suave {
             seed, ..self
         }
     }
 
-    pub fn with_nstart(self, nstart: usize) -> Self {
-        Vegas {
-            nstart, ..self
+    pub fn with_nnew(self, nnew: usize) -> Self {
+        Suave {
+            nnew, ..self
         }
     }
 
-    pub fn with_nincrease(self, nincrease: usize) -> Self {
-        Vegas {
-            nincrease, ..self
+    pub fn with_nmin(self, nmin: usize) -> Self {
+        Suave {
+            nmin, ..self
         }
     }
 
-    pub fn with_nbatch(self, nbatch: usize) -> Self {
-        Vegas {
-            nbatch, ..self
+    pub fn with_flatness(self, flatness: Real) -> Self {
+        Suave {
+            flatness, ..self
         }
     }
 }
 
-impl Integrator for Vegas {
+impl Integrator for Suave {
     type Success = CubaIntegrationResults;
     type Failure = super::CubaError;
     fn integrate<A, B, F: FnMut(A) -> B>(&mut self, mut fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
@@ -92,13 +90,14 @@ impl Integrator for Vegas {
             (inputs, outputs)
         };
 
+        let mut nregions = 0;
         let mut neval = 0;
         let mut fail = 0;
         let (mut value, mut error, mut prob) =
                 (vec![0.0; ncomp], vec![0.0; ncomp], vec![0.0; ncomp]);
 
         unsafe {
-            bindings::llVegas(ndim as c_int, ncomp as c_int,
+            bindings::llSuave(ndim as c_int, ncomp as c_int,
                               Some(cuba_integrand::<A, B, F>), mem::transmute(&mut fun),
                               1 /* nvec */,
                               epsrel,
@@ -107,14 +106,14 @@ impl Integrator for Vegas {
                               self.seed as c_int,
                               self.mineval as c_longlong,
                               self.maxeval as c_longlong,
-                              self.nstart as c_longlong,
-                              self.nincrease as c_longlong,
-                              self.nbatch as c_longlong,
-                              self.gridno as c_int,
+                              self.nnew as c_longlong,
+                              self.nmin as c_longlong,
+                              self.flatness,
                               // statefile
                               ptr::null(),
                               // spin
                               ptr::null_mut(),
+                              &mut nregions,
                               &mut neval,
                               &mut fail,
                               value.as_mut_ptr(),
@@ -124,7 +123,7 @@ impl Integrator for Vegas {
 
         if fail == 0 {
             Ok(CubaIntegrationResults {
-                nregions: None, neval,
+                nregions: Some(nregions), neval,
                 results: value.iter().zip(error.iter()).zip(prob.iter())
                               .map(|((&value, &error), &prob)|
                                      CubaIntegrationResult {
@@ -134,10 +133,10 @@ impl Integrator for Vegas {
             })
         } else if fail == -1 {
             // `baddim`
-            Err(CubaError::BadDim("vegas", ndim))
+            Err(CubaError::BadDim("suave", ndim))
         } else if fail == -2 {
             // `badcomp`
-            Err(CubaError::BadComp("vegas", ncomp))
+            Err(CubaError::BadComp("suave", ncomp))
         } else if fail == 1 {
             Err(CubaError::DidNotConverge(CubaIntegrationResults {
                 nregions: None, neval,
@@ -149,7 +148,7 @@ impl Integrator for Vegas {
                               .collect()
             }))
         } else {
-            unreachable!("Vegas returned invalid failure code: {}", fail)
+            unreachable!("Suave returned invalid failure code: {}", fail)
         }
     }
 }
