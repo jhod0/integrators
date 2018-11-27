@@ -2,6 +2,7 @@ use std::iter::IntoIterator;
 
 use ::bindings;
 use ::{IntegrationResult, Integrator, Real};
+use ::ffi::LandingPad;
 use ::traits::{IntegrandInput, IntegrandOutput};
 
 use super::{make_gsl_function, GSLIntegrationError, GSLIntegrationWorkspace};
@@ -78,18 +79,19 @@ impl QAGP {
 impl Integrator for QAGP {
     type Success = IntegrationResult;
     type Failure = GSLIntegrationError;
-    fn integrate<A, B, F: FnMut(A) -> B>(&mut self, mut fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
+    fn integrate<A, B, F: FnMut(A) -> B>(&mut self, fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
         where A: IntegrandInput,
               B: IntegrandOutput
     {
-        let mut gslfn = make_gsl_function(&mut fun,
-                                          *self.singularities.first().expect("can't be empty"),
-                                          *self.singularities.last().expect("can't be empty"))?;
+        let (low, high) = (*self.singularities.first().expect("can't be empty"),
+                           *self.singularities.last().expect("can't be empty"));
         let singularities = &mut self.singularities[..];
         let mut value: Real = 0.0;
         let mut error: Real = 0.0;
 
+        let mut lp = LandingPad::new(fun);
         let retcode = unsafe {
+            let mut gslfn = make_gsl_function(&mut lp, low, high)?;
             bindings::gsl_integration_qagp(&mut gslfn.function,
                                            singularities.as_mut_ptr(),
                                            singularities.len(),
@@ -99,6 +101,7 @@ impl Integrator for QAGP {
                                            &mut value,
                                            &mut error)
         };
+        lp.maybe_resume_unwind();
 
         if retcode != bindings::GSL_SUCCESS {
             Err(GSLIntegrationError::GSLError(retcode.into()))

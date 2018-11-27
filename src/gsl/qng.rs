@@ -1,4 +1,5 @@
 use ::bindings;
+use ::ffi::LandingPad;
 use ::traits::{IntegrandInput, IntegrandOutput};
 use ::{IntegrationResult, Integrator, Real};
 use super::{make_gsl_function, GSLIntegrationError};
@@ -31,16 +32,17 @@ impl QNG {
 impl Integrator for QNG {
     type Success = IntegrationResult;
     type Failure = GSLIntegrationError;
-    fn integrate<A, B, F: FnMut(A) -> B>(&mut self, mut fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
+    fn integrate<A, B, F: FnMut(A) -> B>(&mut self, fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
         where A: IntegrandInput,
               B: IntegrandOutput
     {
-        let mut gslfn = make_gsl_function(&mut fun, self.range_low, self.range_high)?;
         let mut value: Real = 0.0;
         let mut error: Real = 0.0;
         let mut neval: usize = 0;
 
+        let mut lp = LandingPad::new(fun);
         let retcode = unsafe {
+            let mut gslfn = make_gsl_function(&mut lp, self.range_low, self.range_high)?;
             bindings::gsl_integration_qng(&mut gslfn.function,
                                           self.range_low, self.range_high,
                                           epsabs, epsrel,
@@ -48,6 +50,7 @@ impl Integrator for QNG {
                                           &mut error,
                                           &mut neval)
         };
+        lp.maybe_resume_unwind();
 
         if retcode != bindings::GSL_SUCCESS {
             Err(GSLIntegrationError::GSLError(retcode.into()))

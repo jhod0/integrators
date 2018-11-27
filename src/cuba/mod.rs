@@ -4,6 +4,7 @@ use std::os::raw::{c_int, c_longlong, c_void};
 
 use super::traits::{IntegrandInput, IntegrandOutput};
 use super::{IntegrationResult, Real};
+use super::ffi::LandingPad;
 
 mod cuhre;
 pub use self::cuhre::Cuhre;
@@ -24,18 +25,17 @@ fn cuba_integrand<A, B, F>(ndim: *const c_int,
           B: IntegrandOutput,
           F: FnMut(A) -> B
 {
-    let fnptr = userdata as *mut F;
-    let fun: &mut F = &mut *fnptr;
-
-    if (*ndim as usize) != A::input_size() {
-        panic!("Internal error - wrong number of dimensions passed in");
-    }
+    let fnptr = userdata as *mut LandingPad<A, B, F>;
+    let lp: &mut LandingPad<A, B, F> = &mut *fnptr;
 
     let args = slice::from_raw_parts(x, *ndim as usize);
     let output = slice::from_raw_parts_mut(f, *ncomp as usize);
 
-    fun(A::from_args(args)).into_args(output);
-    0
+    match lp.try_call(args, output) {
+        Ok(_) => 0,
+        // -999 is special `abort` code to Cuba
+        Err(_) => -999,
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -44,21 +44,21 @@ pub enum RandomNumberSource {
     MersenneTwister,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CubaIntegrationResult {
     pub value: Real,
     pub error: Real,
     pub prob: Real
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CubaIntegrationResults {
     pub nregions: Option<c_int>,
     pub neval: c_longlong,
     pub results: Vec<CubaIntegrationResult>
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CubaError {
     /// The integrand input's dimensions are not supported by the given
     /// algorithm. The name of the algorithm and the number of dimensions

@@ -1,6 +1,7 @@
 use std::{mem, ptr};
 use std::os::raw::{c_int, c_longlong};
 use ::bindings;
+use ::ffi::LandingPad;
 use ::traits::{IntegrandInput, IntegrandOutput};
 use ::{Integrator, Real};
 
@@ -97,9 +98,10 @@ impl Integrator for Vegas {
         let (mut value, mut error, mut prob) =
                 (vec![0.0; ncomp], vec![0.0; ncomp], vec![0.0; ncomp]);
 
+        let mut lp = LandingPad::new(fun);
         unsafe {
             bindings::llVegas(ndim as c_int, ncomp as c_int,
-                              Some(cuba_integrand::<A, B, F>), mem::transmute(&mut fun),
+                              Some(cuba_integrand::<A, B, F>), mem::transmute(&mut lp),
                               1 /* nvec */,
                               epsrel,
                               epsabs,
@@ -121,6 +123,7 @@ impl Integrator for Vegas {
                               error.as_mut_ptr(),
                               prob.as_mut_ptr());
         }
+        lp.maybe_resume_unwind();
 
         if fail == 0 {
             Ok(CubaIntegrationResults {

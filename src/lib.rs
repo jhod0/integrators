@@ -1,4 +1,5 @@
 pub mod traits;
+pub mod ffi;
 
 #[cfg(any(feature = "cuba", feature = "gsl"))]
 mod bindings;

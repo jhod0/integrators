@@ -1,6 +1,8 @@
 use std::{mem, ptr};
 use std::os::raw::{c_int, c_longlong};
+
 use ::bindings;
+use ::ffi::LandingPad;
 use ::traits::{IntegrandInput, IntegrandOutput};
 use ::{Integrator, Real};
 
@@ -75,9 +77,10 @@ impl Integrator for Cuhre {
 
         assert!([7, 9, 11, 13].contains(&key));
 
+        let mut lp = LandingPad::new(fun);
         unsafe {
             bindings::llCuhre(ndim as c_int, ncomp as c_int,
-                              Some(cuba_integrand::<A, B, F>), mem::transmute(&mut fun),
+                              Some(cuba_integrand::<A, B, F>), mem::transmute(&mut lp),
                               1 /* nvec */,
                               epsrel,
                               epsabs,
@@ -96,6 +99,7 @@ impl Integrator for Cuhre {
                               error.as_mut_ptr(),
                               prob.as_mut_ptr());
         }
+        lp.maybe_resume_unwind();
 
         if fail == 0 {
             Ok(CubaIntegrationResults {
@@ -124,7 +128,7 @@ impl Integrator for Cuhre {
                               .collect()
             }))
         } else {
-            unreachable!("Cuhre returned invalid failure code: {}", fail)
+            unreachable!("panic should have been propogated into Rust caller")
         }
     }
 }

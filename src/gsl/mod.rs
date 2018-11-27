@@ -4,6 +4,7 @@ use std::ffi::CStr;
 use std::os::raw::{c_void, c_int};
 
 use super::bindings;
+use super::ffi::LandingPad;
 use super::traits::{IntegrandInput, IntegrandOutput};
 use super::Real;
 
@@ -28,16 +29,18 @@ fn gsl_integrand_fn<A, B, F>(x: Real, params: *mut c_void) -> Real
           B: IntegrandOutput,
           F: FnMut(A) -> B
 {
-    let fnptr = params as *mut F;
-    let fun: &mut F = &mut *fnptr;
+    let fnptr = params as *mut LandingPad<A, B, F>;
+    let fun: &mut LandingPad<A, B, F> = &mut *fnptr;
 
     if A::input_size() != 1 {
         panic!("integrand given to GSL integrator demands >1 input");
     }
 
     let mut output: [Real; 1] = [0.0];
-    fun(A::from_args(&[x])).into_args(&mut output);
-    output[0]
+    match fun.try_call(&[x], &mut output) {
+        Ok(_) => output[0],
+        Err(_) => 0.0,
+    }
 }
 
 struct GSLFunction<'a> {
@@ -45,7 +48,7 @@ struct GSLFunction<'a> {
     lifetime: marker::PhantomData<&'a ()>
 }
 
-fn make_gsl_function<'a, A, B, F>(fun: &'a mut F, range_low: Real, range_high: Real)
+fn make_gsl_function<'a, A, B, F>(fun: &'a mut LandingPad<A, B, F>, range_low: Real, range_high: Real)
         -> GSLResult<GSLFunction<'a>>
     where A: IntegrandInput,
           B: IntegrandOutput,
@@ -53,10 +56,10 @@ fn make_gsl_function<'a, A, B, F>(fun: &'a mut F, range_low: Real, range_high: R
 {
     if A::input_size() != 1 {
         Err(GSLIntegrationError::InvalidInputDim(A::input_size()))
-    } else if fun(A::from_args(&[(range_low + range_high) / 2f64]))
-                  .output_size() != 1 {
-        let output_size = fun(A::from_args(&[(range_low + range_high) / 2f64]))
-                              .output_size();
+    } else if fun.raw_call(&[(range_low + range_high) / 2f64])
+                 .output_size() != 1 {
+        let output_size = fun.raw_call(&[(range_low + range_high) / 2f64])
+                             .output_size();
         Err(GSLIntegrationError::InvalidOutputDim(output_size))
     } else {
         Ok(GSLFunction {

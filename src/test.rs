@@ -1,6 +1,6 @@
 use super::{Integrator, Real};
 #[cfg(feature = "cuba")]
-use super::{Cuhre, Vegas};
+use super::cuba::{Cuhre, CubaError, Vegas};
 
 #[test]
 #[cfg(feature = "cuba")]
@@ -10,18 +10,9 @@ fn test_simple_integration() {
 
     let a = cuhre.integrate(|a: Real| (a * a),
                             1e-4, 1e-12);
-    println!("{:?}", a);
+    assert_eq!(a, Err(CubaError::BadDim("cuhre", 1)));
 
     let b = vegas.integrate(|a: Real| (a * a),
                             1e-4, 1e-12);
-    println!("{:?}", b);
-
-    let c = vegas.integrate(|a: Real| {
-        if (a >= 0.4) && (a <= 0.6) {
-            0.0 as Real
-        } else {
-            panic!("Boom")
-        }},
-        1e-4, 1e-12);
-    println!("{:?}", c);
+    assert!(b.is_ok());
 }
