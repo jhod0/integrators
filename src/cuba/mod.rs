@@ -1,3 +1,7 @@
+//! Wrappers for Cuba integration routines. See Cuba documentation
+//! [here](http://www.feynarts.de/cuba/) for details and installation
+//! instructions.
+
 use std::{error, fmt, slice, vec};
 use std::convert::From;
 use std::os::raw::{c_int, c_longlong, c_void};

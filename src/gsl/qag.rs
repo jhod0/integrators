@@ -8,6 +8,8 @@ use ::traits::{IntegrandInput, IntegrandOutput};
 
 use super::{make_gsl_function, GSLIntegrationError, GSLIntegrationWorkspace};
 
+/// Quadrature rule to apply for QAG integration. Rules are supported for 15,
+/// 21, 31, 41, 51, 61 points.
 #[derive(Debug, Hash, Copy, Clone, PartialEq, Eq)]
 pub enum QAGRule {
     Gauss15,
@@ -36,6 +38,22 @@ impl Into<c_int> for QAGRule {
 /// rules to sub-regions of a function until it converges to the requested
 /// uncertainty. This method will work reasonably well for most well-behaved
 /// functions.
+///
+/// ```
+/// use integrators::{Integrator, Real};
+/// let mut qag = integrators::QAG::new(1000);
+///
+/// let res1 = qag.integrate(|a: Real| a * a, 1e-6, 1e-10)
+///               .unwrap();
+///
+/// assert!((res1.value - 3f64.recip()).abs() < res1.error);
+///
+/// let res2 = qag.with_range(3.0, 10.0)
+///               .integrate(|a: Real| a * a, 1e-6, 1e-10)
+///               .unwrap();
+/// assert!((res2.value - (1000f64 - 27f64) / 3.).abs() < res2.error);
+/// ```
+#[derive(Debug, Clone)]
 pub struct QAG {
     range_low: Real,
     range_high: Real,
@@ -67,11 +85,13 @@ impl QAG {
         }
     }
 
+    /// Use a different integration range. (Default = [0, 1])
     pub fn with_range(self, range_low: Real, range_high: Real) -> Self {
         QAG { range_low, range_high, ..self }
     }
 
 
+    /// Use a specific quadrature rule. (Default = `QAGRule::Gauss61`)
     pub fn with_rule(self, rule: QAGRule) -> Self {
         QAG { rule, ..self }
     }

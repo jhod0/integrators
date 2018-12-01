@@ -1,9 +1,24 @@
 use std::error;
 use super::{Real, IntegrationResult};
 
+/// Types which can perform numerical integration can implement this type.
 pub trait Integrator {
+    /// If integration converges successfully, the integrator will return a
+    /// `Success` value.
     type Success: IntegrationResults;
+    /// If integration fails, the integrator will return an error type.
     type Failure: error::Error + 'static;
+    /// Integrates the function `fun` over its relevant input dimensions, to
+    /// a relative precision of `epsrel`, and an absolute precision of
+    /// `epsabs`. If it cannot achieve that precision, the algorithm will
+    /// return an `Err(Self::Failure)` value.
+    ///
+    /// The range of the integration is defined by the integrator type, but
+    /// is otherwise be assumed to be the unit hypercube of dimension
+    /// `A::input_size()`. If the dimension of integration is not supported
+    /// by the integrator (for example, attempting to integrate `f(a, b) da db`
+    /// with an algorithm for one-dimensional integration), an
+    /// `Err(Self::Failure)` is returned.
     fn integrate<A, B, F: FnMut(A) -> B>(&mut self, fun: F, epsrel: Real, epsabs: Real) -> Result<Self::Success, Self::Failure>
         where A: IntegrandInput,
               B: IntegrandOutput;

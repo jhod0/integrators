@@ -11,6 +11,7 @@ use super::{make_gsl_function, GSLIntegrationError};
 /// fails.
 ///
 /// See GSL Docs [here](https://www.gnu.org/software/gsl/doc/html/integration.html#c.gsl_integration_qng).
+#[derive(Debug, Copy, Clone)]
 pub struct QNG {
     range_low: Real,
     range_high: Real

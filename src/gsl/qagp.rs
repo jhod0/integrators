@@ -13,6 +13,7 @@ use super::{make_gsl_function, GSLIntegrationError, GSLIntegrationWorkspace};
 ///
 /// See its documentation
 /// [here](https://www.gnu.org/software/gsl/doc/html/integration.html#c.gsl_integration_qagp).
+#[derive(Debug, Clone)]
 pub struct QAGP {
     singularities: Vec<Real>,
     wkspc: GSLIntegrationWorkspace,

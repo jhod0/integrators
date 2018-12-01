@@ -1,3 +1,6 @@
+//! Wrappers for GSL integration routines. See GSL documentation
+//! [here](https://www.gnu.org/software/gsl/doc/html/integration.html).
+
 use std::{error, fmt, marker, mem};
 use std::convert::{From, Into};
 use std::ffi::CStr;
@@ -43,6 +46,7 @@ fn gsl_integrand_fn<A, B, F>(x: Real, params: *mut c_void) -> Real
     }
 }
 
+#[derive(Debug)]
 struct GSLFunction<'a> {
     function: bindings::gsl_function,
     lifetime: marker::PhantomData<&'a ()>
@@ -200,6 +204,20 @@ pub struct GSLIntegrationResult {
 struct GSLIntegrationWorkspace {
     pub(crate) nintervals: usize,
     wkspc: *mut bindings::gsl_integration_workspace
+}
+
+impl fmt::Debug for GSLIntegrationWorkspace {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("GSLIntegrationWorkspace")
+           .field("nintervals", &self.nintervals)
+           .finish()
+    }
+}
+
+impl Clone for GSLIntegrationWorkspace {
+    fn clone(&self) -> Self {
+        GSLIntegrationWorkspace::new(self.nintervals)
+    }
 }
 
 impl GSLIntegrationWorkspace {

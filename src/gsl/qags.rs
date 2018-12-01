@@ -8,6 +8,7 @@ use super::{make_gsl_function, GSLIntegrationError, GSLIntegrationWorkspace};
 /// Quadrature Adaptive General integration with Singularities. Concentrates
 /// subintervals around integrable singularities which converge to the solution,
 /// using an extrapolation procedure to speed convergence.
+#[derive(Debug, Clone)]
 pub struct QAGS {
     range_low: Real,
     range_high: Real,
