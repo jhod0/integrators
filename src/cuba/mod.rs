@@ -1,6 +1,10 @@
 //! Wrappers for Cuba integration routines. See Cuba documentation
 //! [here](http://www.feynarts.de/cuba/) for details and installation
 //! instructions.
+//!
+//! This module, and all its re-exports from the top-level `integrators`
+//! module, are gated with the `cuba` feature. So, if you don't want to use
+//! these wrappers, or don't have Cuba installed, just turn off that feature.
 
 use std::{error, fmt, slice, vec};
 use std::convert::From;

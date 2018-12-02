@@ -1,5 +1,37 @@
 //! Wrappers for GSL integration routines. See GSL documentation
 //! [here](https://www.gnu.org/software/gsl/doc/html/integration.html).
+//!
+//! This module, and all its re-exports from the top-level `integrators`
+//! module, are gated with the `gsl` feature. So, if you don't want to use
+//! these wrappers, or don't have GSL installed, just turn off that feature.
+//!
+//! Note that GSL's integration routines can only support integration over
+//! one dimension; if you need to integrate over multiple dimensions, you can
+//! nest calls to integrators, or (preferrably) use another library such as
+//! Cuba.
+//!
+//! ```rust
+//! use integrators::{Integrator, Real};
+//! fn integrate_gaussian(from: f64, to: f64, sigma: f64, mean: f64) -> f64 {
+//!     let normalization = (2f64 * ::std::f64::consts::PI).sqrt() * sigma;
+//!     integrators::gsl::QAG::new(1000)
+//!                       .with_range(from, to)
+//!                       .integrate(|x: Real| {
+//!                           (-((x - mean) / (2f64 * sigma)).powi(2)).exp()
+//!                           / normalization
+//!                           }, 1e-6, 1e-18)
+//!                       .unwrap()
+//!                       .value
+//! }
+//!
+//! let ranges: &'static [(Real, Real)] = &[(-0.3, 0.0), (0.0, 1.5),
+//!                                         (1.5, 3.2), (3.2, 5.9)];
+//! for &(a, b) in ranges.iter() {
+//!     let integrated = integrate_gaussian(a, b, 1.0, 0.0);
+//!     println!("range: {}, {}", a, b);
+//!     println!("integrated: {}", integrated);
+//! }
+//! ```
 
 use std::{error, fmt, marker, mem};
 use std::convert::{From, Into};
