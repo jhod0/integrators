@@ -4,6 +4,9 @@ version = "0.0.1"
 authors = ["Jackson O'Donnell <jacksonhodonnell@gmail.com>"]
 description = "Generic traits to allow easy plugging of different numerical integration algorithms, and wrappers for the Cuba and GSL integrators."
 homepage = "https://github.com/jhod0/integrators"
+keywords = ["ffi", "bindings", "math"]
+license = "MIT"
+
 build = "build.rs"
 
 [features]
