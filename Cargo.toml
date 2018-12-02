@@ -1,11 +1,13 @@
 [package]
 name = "integrators"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Jackson O'Donnell <jacksonhodonnell@gmail.com>"]
 description = "Generic traits to allow easy plugging of different numerical integration algorithms, and wrappers for the Cuba and GSL integrators."
 homepage = "https://github.com/jhod0/integrators"
-keywords = ["ffi", "bindings", "math"]
-license = "MIT"
+keywords = ["ffi", "bindings", "math", "gsl", "cuba"]
+# Because GSL is GPL (of course), any library using this will likely also be
+# subject to a GSL license - so might as well make this GSL.
+license = "GPL-3.0-or-later"
 
 build = "build.rs"
 
