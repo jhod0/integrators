@@ -5,6 +5,50 @@
 //! This module, and all its re-exports from the top-level `integrators`
 //! module, are gated with the `cuba` feature. So, if you don't want to use
 //! these wrappers, or don't have Cuba installed, just turn off that feature.
+//!
+//!
+//! # Example
+//!
+//! This example computes the volume of a sphere by direct integration over 3 dimensions, and
+//! compares to the expected result of 4/3 pi r^3.
+//!
+//! ```
+//! use std::f64::consts::PI;
+//! use integrators::{Integrator, Cuhre, Real, Real3, IntegrationRange};
+//!
+//! // An integral over a sphere is:
+//! // \int f(\theta, \phi, r) r^2 sin(\theta) d\theta d\phi dr
+//! // for r from 0 to the sphere's radius, \theta from 0 to pi,
+//! // and \phi from 0 to 2pi
+//!
+//! fn volume(radius: Real) -> Real {
+//!     let mut cuhre = Cuhre::new(999999);
+//!     let r_range = IntegrationRange::new(0.0, radius);
+//!     let theta_range = IntegrationRange::new(0.0, PI);
+//!     let phi_range = IntegrationRange::new(0.0, 2.0*PI);
+//!
+//!     let results = cuhre.integrate(|(rs, thetas, phis): Real3| {
+//!                 let r = r_range.transform(rs);
+//!                 let theta = theta_range.transform(thetas);
+//!                 let phi = phi_range.transform(phis);
+//!                 r * r * theta.sin()
+//!                 * r_range.jacobian()
+//!                 * theta_range.jacobian()
+//!                 * phi_range.jacobian()
+//!             }, 1e-5, 1e-18).unwrap();
+//!     results.results[0].value
+//! }
+//!
+//! fn exact_volume(radius: Real) -> Real {
+//!     4.0/3.0 * PI * radius.powi(3)
+//! }
+//!
+//! for &r in [0.3, 1.0, 5.0, 10.0].into_iter() {
+//!     let ex = exact_volume(r);
+//!     let calc = volume(r);
+//!     assert!((calc - ex).abs() < ex*1e-5);
+//! }
+//! ```
 
 use std::{error, fmt, slice, vec};
 use std::convert::From;
@@ -43,6 +87,29 @@ fn cuba_integrand<A, B, F>(ndim: *const c_int,
         Ok(_) => 0,
         // -999 is special `abort` code to Cuba
         Err(_) => -999,
+    }
+}
+
+pub struct IntegrationRange {
+    start: Real,
+    length: Real,
+}
+
+impl IntegrationRange {
+    pub fn new(start: Real, end: Real) -> Self {
+        IntegrationRange {
+            start,
+            length: end - start
+        }
+    }
+
+    pub fn transform(&self, x: Real) -> Real {
+        assert!((x >= 0.0) & (x <= 1.0));
+        self.start + x * self.length
+    }
+
+    pub fn jacobian(&self) -> Real {
+        self.length
     }
 }
 
