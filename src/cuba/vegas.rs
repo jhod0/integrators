@@ -1,11 +1,13 @@
 use std::{mem, ptr};
 use std::os::raw::{c_int, c_longlong};
+
 use ::bindings;
 use ::ffi::LandingPad;
 use ::traits::{IntegrandInput, IntegrandOutput};
 use ::{Integrator, Real};
 
-use super::{cuba_integrand, CubaError, CubaIntegrationResult, CubaIntegrationResults};
+use super::{cuba_integrand, CubaError, CubaIntegrationResult, CubaIntegrationResults,
+            RandomNumberSource};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Vegas {
@@ -51,6 +53,7 @@ impl Vegas {
         }
     }
 
+    /// Set the random number generator seed.
     pub fn with_seed(self, seed: usize) -> Self {
         Vegas {
             seed, ..self
@@ -72,6 +75,16 @@ impl Vegas {
     pub fn with_nbatch(self, nbatch: usize) -> Self {
         Vegas {
             nbatch, ..self
+        }
+    }
+
+    /// Set the random number generator source.
+    pub fn with_rng(self, rng: RandomNumberSource) -> Self {
+        Vegas {
+            flags: (self.flags & !0x8) & match rng {
+                RandomNumberSource::Sobol => 0,
+                RandomNumberSource::MersenneTwister => 8,
+            }, ..self
         }
     }
 }

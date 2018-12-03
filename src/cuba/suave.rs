@@ -6,7 +6,8 @@ use ::ffi::LandingPad;
 use ::traits::{IntegrandInput, IntegrandOutput};
 use ::{Integrator, Real};
 
-use super::{cuba_integrand, CubaError, CubaIntegrationResult, CubaIntegrationResults};
+use super::{cuba_integrand, CubaError, CubaIntegrationResult, CubaIntegrationResults,
+            RandomNumberSource};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Suave {
@@ -71,6 +72,16 @@ impl Suave {
     pub fn with_flatness(self, flatness: Real) -> Self {
         Suave {
             flatness, ..self
+        }
+    }
+
+    /// Set the random number generator source.
+    pub fn with_rng(self, rng: RandomNumberSource) -> Self {
+        Suave {
+            flags: (self.flags & !0x8) & match rng {
+                RandomNumberSource::Sobol => 0,
+                RandomNumberSource::MersenneTwister => 8,
+            }, ..self
         }
     }
 }

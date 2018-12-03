@@ -90,12 +90,16 @@ fn cuba_integrand<A, B, F>(ndim: *const c_int,
     }
 }
 
+/// Since Cuba integrates on the unit hypercube, it is convenient to have a
+/// helper to convert into a different integration range.
+#[derive(Debug, PartialEq)]
 pub struct IntegrationRange {
     start: Real,
     length: Real,
 }
 
 impl IntegrationRange {
+    /// Create a new range from start to end.
     pub fn new(start: Real, end: Real) -> Self {
         IntegrationRange {
             start,
@@ -103,16 +107,24 @@ impl IntegrationRange {
         }
     }
 
+    /// Scale Cuba's dimension to this integration range. I.e., convert from
+    /// [0,1] to [`start`, `end`].
+    ///
+    /// # Panics
+    /// If x is not between 0 and 1 (inclusive), panics.
     pub fn transform(&self, x: Real) -> Real {
         assert!((x >= 0.0) & (x <= 1.0));
         self.start + x * self.length
     }
 
+    /// Scale factor.
     pub fn jacobian(&self) -> Real {
         self.length
     }
 }
 
+/// The random number generator source for Cuba's Monte Carlo algorithms. Refer
+/// to Cuba's docs for details and pros/cons of each.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RandomNumberSource {
     Sobol,
@@ -121,16 +133,25 @@ pub enum RandomNumberSource {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CubaIntegrationResult {
+    /// The integration result.
     pub value: Real,
+    /// An error estimate on the integration result.
     pub error: Real,
+    /// How much trust Cuba puts in the error estimate. Will be a number
+    /// between 0 and 1, where 0 is good, and 1 is bad.
     pub prob: Real
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CubaIntegrationResults {
+    /// The number of subintervals used in the integration. Vegas does not
+    /// provide this, and so returns `None` for this field.
     pub nregions: Option<c_int>,
+    /// The number of evaluations used.
     pub neval: c_longlong,
-    pub results: Vec<CubaIntegrationResult>
+    /// Integration results, a vector of the same length as the integrand's
+    /// output dimensions.
+    pub results: Vec<CubaIntegrationResult>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
