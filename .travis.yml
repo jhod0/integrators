@@ -1,0 +1,46 @@
+language: rust
+sudo: required
+rust:
+    - stable
+    - beta
+    - nightly
+
+matrix:
+    allow_failures:
+        - rust: nightly
+    fast_finish: true
+
+cache: cargo
+
+before_install:
+    - echo "Installing GSL..."
+    - sudo apt-get install -y libgsl0-dev
+    - echo "Done Installing GSL"
+    - echo "Installing Cuba..."
+    - pushd /tmp
+    - wget http://www.feynarts.de/cuba/Cuba-4.2.tar.gz
+    - tar xf Cuba-4.2.tar.gz
+    - rm Cuba-4.2.tar.gz
+    - cd Cuba-4.2
+    - CFLAGS="-O3 -ffast-math -fomit-frame-pointer -march=native -fPIC" ./configure
+    - sudo make lib
+    - sudo make install
+    - cd /usr/local/lib
+    - mkdir /tmp/foo
+    - sudo mv libcuba.a /tmp/foo
+    - cd /tmp/foo
+    - sudo ar xv libcuba.a
+    - sudo gcc -shared *.o -o libcuba.so
+    - sudo rm -f *.o
+    - sudo mv libcuba.so /usr/local/lib
+    - sudo rm -rf /tmp/Cuba-4.2
+    - sudo rm -rf /tmp/foo
+    - file /usr/local/lib/libcuba.so
+    - sudo chmod 555 /usr/local/lib/libcuba.so
+    - popd
+    - echo "Done Installing Cuba"
+    - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+notifications:
+  email:
+    - jacksonhodonnell@gmail.com
