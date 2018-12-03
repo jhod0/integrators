@@ -1,4 +1,4 @@
-# Integrators
+# Integrators [![Build Status](https://travis-ci.org/jhod0/integrators.svg?branch=master)](https://travis-ci.org/jhod0/integrators)
 A Rust crate which provides a generic interface for numerical integrators. It includes implementations of this interface for integrators from the GSL and Cuba libraries.
 
 
