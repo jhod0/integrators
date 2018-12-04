@@ -14,7 +14,8 @@
 //!
 //! ```
 //! use std::f64::consts::PI;
-//! use integrators::{Integrator, Cuhre, Real, Real3, IntegrationRange};
+//! use integrators::{Integrator, Real, Real3};
+//! use integrators::cuba::{Cuhre, IntegrationRange};
 //!
 //! // An integral over a sphere is:
 //! // \int f(\theta, \phi, r) r^2 sin(\theta) d\theta d\phi dr

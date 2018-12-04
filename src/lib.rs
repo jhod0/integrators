@@ -7,15 +7,8 @@ mod bindings;
 #[cfg(feature = "cuba")]
 pub mod cuba;
 
-#[cfg(feature = "cuba")]
-pub use cuba::{Cuhre, Vegas, Suave, IntegrationRange};
-
 #[cfg(feature = "gsl")]
 pub mod gsl;
-
-#[cfg(feature = "gsl")]
-pub use gsl::{GSLIntegrationError, GSLResult,
-              QNG, QAG, QAGRule, QAGS, QAGP};
 
 #[cfg(test)]
 mod test;

@@ -58,6 +58,9 @@ pub use self::qags::QAGS;
 mod qagp;
 pub use self::qagp::QAGP;
 
+mod qagi;
+pub use self::qagi::{QAGI, QAGIU, QAGIL};
+
 unsafe extern "C"
 fn gsl_integrand_fn<A, B, F>(x: Real, params: *mut c_void) -> Real
     where A: IntegrandInput,

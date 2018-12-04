@@ -40,8 +40,8 @@ impl Into<c_int> for QAGRule {
 /// functions.
 ///
 /// ```
-/// use integrators::{Integrator, Real};
-/// let mut qag = integrators::QAG::new(1000);
+/// use integrators::{gsl, Integrator, Real};
+/// let mut qag = gsl::QAG::new(1000);
 ///
 /// let res1 = qag.integrate(|a: Real| a * a, 1e-6, 1e-10)
 ///               .unwrap();
