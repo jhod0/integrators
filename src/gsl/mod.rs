@@ -93,6 +93,10 @@ fn make_gsl_function<'a, A, B, F>(fun: &'a mut LandingPad<A, B, F>, range_low: R
           B: IntegrandOutput,
           F: FnMut(A) -> B
 {
+    // Disable the default error handler so we can handle GSL errors in Rust
+    // Otherwise - GSL would use default behavior of aborting process on error
+    unsafe { bindings::gsl_set_error_handler_off() };
+
     if A::input_size() != 1 {
         Err(GSLIntegrationError::InvalidInputDim(A::input_size()))
     } else if fun.raw_call(&[(range_low + range_high) / 2f64])
@@ -152,21 +156,11 @@ impl GSLErrorCode {
 
 impl fmt::Display for GSLErrorCode {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        use self::GSLErrorCode::*;
-        match &self {
-            MaxIter => write!(fmt, "(GSL) maximum iterations reached"),
-            Round => write!(fmt, "(GSL) round-off error detected"),
-            Sing => write!(fmt, "(GSL) non-integrable singularity detected"),
-            Diverge => write!(fmt, "(GSL) divergent integral"),
-            Domain => write!(fmt, "(GSL) domain error on input arguments"),
-            Other(n) => {
-                let res = write!(fmt, "(GSL) error code {}", n)?;
-                if let Some(desc) = self.gsl_description() {
-                    write!(fmt, ", description: {}", desc)
-                } else {
-                    Ok(res)
-                }
-            },
+        let n = self.raw();
+        if let Some(desc) = self.gsl_description() {
+            write!(fmt, "(GSL) error code {}, description: {}", n, desc)
+        } else {
+            write!(fmt, "(GSL) error code {}", n)
         }
     }
 }

@@ -1,6 +1,23 @@
+//use std::intrinsics::unchecked_div;
 use ::Real;
 use ::Integrator;
-use super::{GSLIntegrationError, QNG, QAG};
+use super::{GSLIntegrationError, QNG, QAG, QAGS, QAGP};
+
+fn nan(_: Real) -> Real {
+    ::std::f64::NAN
+}
+
+fn infty(_: Real) -> Real {
+    ::std::f64::INFINITY
+}
+
+fn inv_sq_offset(x: Real, ofs: Real) -> Real {
+    1.0 / (x - ofs).powi(2)
+}
+
+fn inv_offset(x: Real, ofs: Real) -> Real {
+    1.0 / (x - ofs)
+}
 
 fn two_args((a, b): (Real, Real)) -> Real {
     a + b
@@ -51,4 +68,59 @@ fn test_invalid_dims() {
                Err(GSLIntegrationError::InvalidOutputDim(2)));
     assert_eq!(qng.integrate(three_inputs_two_outputs, 1e-3, 1e-6),
                Err(GSLIntegrationError::InvalidInputDim(3)));
+}
+
+#[test]
+fn test_error_handling_nan() {
+    let mut qng = QNG::new(0.0, 1.0);
+    let res = qng.integrate(nan, 1e-6, 1e-10)
+                 .expect_err("integration should fail");
+    assert_eq!("(GSL) error code 14, description: failed to reach the specified tolerance",
+               format!("{}", res));
+}
+
+#[test]
+fn test_error_handling_pos_inf() {
+    let mut qng = QNG::new(0.0, 1.0);
+    let res = qng.integrate(infty, 1e-6, 1e-10)
+                 .expect_err("integration should fail");
+    assert_eq!("(GSL) error code 14, description: failed to reach the specified tolerance",
+               format!("{}", res));
+}
+
+#[test]
+fn test_error_handling_singularity() {
+    let mut qag = QAG::new(1000)
+                      .with_range(0.0, 1.0);
+    let res = qag.integrate(|x| inv_sq_offset(x, 0.5), 1e-6, 1e-10)
+                 .expect_err("integration should fail");
+    assert_eq!("(GSL) error code 5, description: generic failure",
+               format!("{}", res));
+}
+
+#[test]
+fn test_qags_singularity() {
+    let mut qags = QAGS::new(1000);
+    let res1 = qags.integrate(|x| inv_offset(x, 0.5), 1e-6, 1e-10)
+                   .expect_err("integration should fail");
+    println!("{}", res1);
+    assert_eq!("(GSL) error code 21, description: singularity or extremely bad function behavior detected",
+               format!("{}", res1));
+
+    let res2 = qags.integrate(|x: Real| 1.0 / (1.0 - x).sqrt(), 1e-6, 1e-10)
+                   .expect("integration should succeed");
+    assert!((res2.value - 2f64).abs() <= res2.error);
+}
+
+#[test]
+fn test_qagp_singularity() {
+    let mut qagp = QAGP::new(1000, vec![0.0, 0.5, 1.0].into_iter()).unwrap();
+    let res1 = qagp.integrate(|x| inv_offset(x, 0.5), 1e-6, 1e-10)
+                   .expect("integration should work");
+    assert!((res1.value - 0f64).abs() <= res1.error);
+
+    let res2 = qagp.with_points(vec![0.0, 1.0].into_iter()).unwrap()
+                   .integrate(|x: Real| 1.0 / (1.0 - x).sqrt(), 1e-6, 1e-10)
+                   .expect("integration should succeed");
+    assert!((res2.value - 2f64).abs() <= res2.error);
 }
