@@ -22,7 +22,8 @@ pub type Real6 = (Real, Real, Real, Real, Real, Real);
 pub type Real7 = (Real, Real, Real, Real, Real, Real, Real);
 pub type Real8 = (Real, Real, Real, Real, Real, Real, Real, Real);
 
-pub use traits::{Integrator, IntegrandInput, IntegrandOutput};
+pub use traits::{Integrator, IntegrandInput, IntegrandOutput,
+                 IntegrationResults};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct IntegrationResult {

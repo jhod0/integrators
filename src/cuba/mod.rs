@@ -23,20 +23,22 @@
 //! // and \phi from 0 to 2pi
 //!
 //! fn volume(radius: Real) -> Real {
-//!     let mut cuhre = Cuhre::new(999999);
 //!     let r_range = IntegrationRange::new(0.0, radius);
 //!     let theta_range = IntegrationRange::new(0.0, PI);
 //!     let phi_range = IntegrationRange::new(0.0, 2.0*PI);
 //!
-//!     let results = cuhre.integrate(|(rs, thetas, phis): Real3| {
-//!                 let r = r_range.transform(rs);
-//!                 let theta = theta_range.transform(thetas);
-//!                 let phi = phi_range.transform(phis);
-//!                 r * r * theta.sin()
-//!                 * r_range.jacobian()
-//!                 * theta_range.jacobian()
-//!                 * phi_range.jacobian()
-//!             }, 1e-5, 1e-18).unwrap();
+//!     let results = Cuhre::new(999999)
+//!                         .integrate(|(rs, thetas, phis): Real3| {
+//!                             let r = r_range.transform(rs);
+//!                             let theta = theta_range.transform(thetas);
+//!                             let phi = phi_range.transform(phis);
+//!                             r * r * theta.sin()
+//!                             * r_range.jacobian()
+//!                             * theta_range.jacobian()
+//!                             * phi_range.jacobian()
+//!                         }, 1e-5, 1e-18).unwrap();
+//!
+//!     assert_eq!(results.results.len(), 1);
 //!     results.results[0].value
 //! }
 //!
@@ -47,6 +49,63 @@
 //! for &r in [0.3, 1.0, 5.0, 10.0].into_iter() {
 //!     let ex = exact_volume(r);
 //!     let calc = volume(r);
+//!     assert!((calc - ex).abs() < ex*1e-5);
+//! }
+//! ```
+//!
+//! # Vectorized Integration
+//!
+//! You can integrate an arbitrary number of functions at the same time, by
+//! returning a vector from the integrand. Note, however, that the integrand
+//! must *always* return a vector of the same length. Returning a vector
+//! of different lengths at different integrand calls will trigger a panic.
+//!
+//! This example shows how to do so by solving for the volume of a number
+//! of spheres simultaneously, using the same methods as above.
+//!
+//! ```
+//! use std::f64::consts::PI;
+//! use integrators::{Integrator, IntegrationResults, Real, Real3};
+//! use integrators::cuba::{Cuhre, IntegrationRange};
+//!
+//! fn volume(radii: &[Real]) -> Vec<Real> {
+//!     let r_ranges = radii.iter()
+//!                         .map(|&r| IntegrationRange::new(0.0, r))
+//!                         .collect::<Vec<_>>();
+//!     let theta_range = IntegrationRange::new(0.0, PI);
+//!     let phi_range = IntegrationRange::new(0.0, 2.0*PI);
+//!
+//!     let res = Cuhre::new(999999)
+//!                     .integrate(|(rs, thetas, phis): Real3| {
+//!                         let theta = theta_range.transform(thetas);
+//!                         let phi = phi_range.transform(phis);
+//!                         r_ranges.iter()
+//!                                 .map(|rir| {
+//!                                     let r = rir.transform(rs);
+//!                                     r * r * theta.sin()
+//!                                     * rir.jacobian()
+//!                                     * theta_range.jacobian()
+//!                                     * phi_range.jacobian()
+//!                                     })
+//!                                 .collect::<Vec<Real>>()
+//!                     }, 1e-5, 1e-18).unwrap();
+//!
+//!     assert_eq!(res.results.len(), radii.len());
+//!
+//!     // We only need the values - not the errors
+//!     res.results()
+//!        .map(|ir| ir.value)
+//!        .collect()
+//! }
+//!
+//! fn exact_volume(radius: Real) -> Real {
+//!     4.0/3.0 * PI * radius.powi(3)
+//! }
+//!
+//! let rs: [Real; 4] = [0.3, 1.0, 5.0, 10.0];
+//! let calcs = volume(&rs[..]);
+//! for (calc, &r) in calcs.into_iter().zip(rs.into_iter()) {
+//!     let ex = exact_volume(r);
 //!     assert!((calc - ex).abs() < ex*1e-5);
 //! }
 //! ```
