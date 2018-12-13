@@ -60,7 +60,7 @@ impl<A: IntegrandInput, B: IntegrandOutput, F: FnMut(A) -> B> LandingPad<A, B, F
         }
     }
 
-    pub(crate) fn raw_call(&mut self, args: &[Real]) -> B {
+    pub fn raw_call(&mut self, args: &[Real]) -> B {
         (self.fun)(A::from_args(args))
     }
 
