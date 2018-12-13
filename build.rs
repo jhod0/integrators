@@ -7,16 +7,16 @@ fn main() {
     let mut bindings = bindgen::Builder::default();
     let mut any_bindings = false;
 
-    if env::var("CARGO_FEATURE_GSL").is_ok() {
+    if env::var("CARGO_FEATURE_CUBA").is_ok() {
         println!("cargo:rustc-link-lib=cuba");
-        bindings = bindings.header("gsl_wrapper.h");
+        bindings = bindings.header("cuba_wrapper.h");
         any_bindings = true;
     }
 
-    if env::var("CARGO_FEATURE_CUBA").is_ok() {
+    if env::var("CARGO_FEATURE_GSL").is_ok() {
         println!("cargo:rustc-link-lib=gsl");
         println!("cargo:rustc-link-lib=gslcblas");
-        bindings = bindings.header("cuba_wrapper.h");
+        bindings = bindings.header("gsl_wrapper.h");
         any_bindings = true;
     }
 
