@@ -19,6 +19,7 @@ travis-ci = { repository = "jhod0/integrators", branch = "master" }
 default = ["cuba", "gsl"]
 cuba = []
 gsl = []
+no_gslcblas=[]
 
 [build-dependencies]
 bindgen = "0.43.*"

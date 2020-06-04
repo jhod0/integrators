@@ -1,7 +1,7 @@
 //use std::intrinsics::unchecked_div;
 use ::Real;
 use ::Integrator;
-use super::{GSLIntegrationError, QNG, QAG, QAGS, QAGP};
+use super::{GSLIntegrationError, QNG, QAG, QAGS, QAGP, QAWC};
 
 fn nan(_: Real) -> Real {
     ::std::f64::NAN
@@ -123,4 +123,23 @@ fn test_qagp_singularity() {
                    .integrate(|x: Real| 1.0 / (1.0 - x).sqrt(), 1e-6, 1e-10)
                    .expect("integration should succeed");
     assert!((res2.value - 2f64).abs() <= res2.error);
+}
+
+#[test]
+fn test_qawc(){
+    let mut qawc = QAWC::new(1000)
+        .with_range(-1., 1.)
+        .with_singularity(0.0);
+    // Trivial example
+    let res1 = qawc.integrate(|x: Real| x, 1e-6, 1e-10)
+        .expect("integration should succeed");
+    assert!((res1.value - 2.0f64).abs() <= res1.error);
+
+    let mut qawc = qawc.with_range(0.0, 2.0)
+        .with_singularity(1.0);
+    // Analytical value: 2 E SinhIntegral[1] ~ 5.74781168
+    let res2 = qawc.integrate(|x: Real| x.exp(), 1e-6, 1e-10)
+        .expect("integration should succeed");
+    println!("Result: {},   err:{}", res2.value, res2.error);
+    assert!((res2.value - 5.747811685312522940687587).abs() <= res2.error);
 }

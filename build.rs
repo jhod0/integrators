@@ -15,7 +15,9 @@ fn main() {
 
     if env::var("CARGO_FEATURE_GSL").is_ok() {
         println!("cargo:rustc-link-lib=gsl");
-        println!("cargo:rustc-link-lib=gslcblas");
+        if env::var("CARGO_FEATURE_NO_GSLCBLAS").is_err(){
+            println!("cargo:rustc-link-lib=gslcblas");
+        }
         bindings = bindings.header("gsl_wrapper.h");
         any_bindings = true;
     }

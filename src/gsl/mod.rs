@@ -52,6 +52,9 @@ pub use self::qng::QNG;
 mod qag;
 pub use self::qag::{QAG, QAGRule};
 
+mod qawc;
+pub use self::qawc::QAWC;
+
 mod qags;
 pub use self::qags::QAGS;
 
